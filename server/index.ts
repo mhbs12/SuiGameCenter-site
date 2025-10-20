@@ -2,7 +2,6 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
-import { handleControlsByOwner, handleControlsByType } from "./routes/controls";
 
 export function createServer() {
   const app = express();
