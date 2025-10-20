@@ -19,6 +19,8 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+  app.get("/api/controls/owner/:address", handleControlsByOwner);
+  app.get("/api/controls/by_type", handleControlsByType);
 
   return app;
 }
