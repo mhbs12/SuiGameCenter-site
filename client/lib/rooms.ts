@@ -40,3 +40,8 @@ export function getRoomById(
 ): RoomInfo | undefined {
   return getRooms(network).find((r) => r.id === id);
 }
+
+export function removeRoom(network: NetworkName, id: string) {
+  const rooms = getRooms(network).filter((r) => r.id !== id);
+  saveRooms(network, rooms);
+}
