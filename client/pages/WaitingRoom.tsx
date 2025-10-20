@@ -19,18 +19,19 @@ export default function WaitingRoom() {
   useEffect(() => {
     let mounted = true;
     if (!room?.controlId) return;
-    const url = getFullnodeUrl(network as any);
-    const provider = new JsonRpcProvider({ url });
+    const url = getFullnodeUrl(network as any).replace(/\/$/, "");
     let timer: any = null;
 
     const fetchControl = async () => {
       try {
         setLoadingControl(true);
-        const res = await provider.getObject({ id: room.controlId });
+        // Sui fullnode REST endpoint for object info
+        const resp = await fetch(`${url}/objects/${room.controlId}`);
+        if (!resp.ok) throw new Error(`Fetch failed ${resp.status}`);
+        const data = await resp.json();
         if (!mounted) return;
-        setControlData(res);
+        setControlData(data);
       } catch (e) {
-        // ignore transient errors
         console.warn("Failed to fetch control object", e);
       } finally {
         if (mounted) setLoadingControl(false);
