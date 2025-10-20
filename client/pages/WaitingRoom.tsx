@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
-import { JsonRpcProvider } from "@mysten/sui.js";
 import { getFullnodeUrl } from "@mysten/sui/client";
 
 export default function WaitingRoom() {
