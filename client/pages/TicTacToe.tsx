@@ -35,7 +35,6 @@ export default function TicTacToePage() {
   const [joinName, setJoinName] = useState("");
   const [joinAmount, setJoinAmount] = useState("");
   const rooms = useMemo(() => getRooms(network as NetworkName), [network]);
-  const [joinId, setJoinId] = useState("");
 
   const onCreate = async () => {
     if (!connected) {
@@ -108,8 +107,7 @@ export default function TicTacToePage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">TicTacToe</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Create a room and set a stake in SUI, or join an existing room
-              with its ID.
+              Create a room and set a stake in SUI, or join an existing room.
             </p>
           </div>
           <Link
@@ -179,15 +177,6 @@ export default function TicTacToePage() {
                   placeholder="e.g. 1.5"
                   value={joinAmount}
                   onChange={(e) => setJoinAmount(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="room-id">Room ID (optional)</Label>
-                <Input
-                  id="room-id"
-                  placeholder="tx digest or object id"
-                  value={joinId}
-                  onChange={(e) => setJoinId(e.target.value)}
                 />
               </div>
               <Button onClick={onJoin} className="w-full" variant="secondary">
