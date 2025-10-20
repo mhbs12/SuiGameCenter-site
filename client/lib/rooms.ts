@@ -46,3 +46,9 @@ export function removeRoom(network: NetworkName, id: string) {
   const rooms = getRooms(network).filter((r) => r.id !== id);
   saveRooms(network, rooms);
 }
+
+export function updateRoom(network: NetworkName, id: string, patch: Partial<RoomInfo>) {
+  const rooms = getRooms(network).map((r) => (r.id === id ? { ...r, ...patch } : r));
+  saveRooms(network, rooms);
+  return rooms.find((r) => r.id === id);
+}
