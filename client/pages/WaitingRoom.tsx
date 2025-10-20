@@ -31,6 +31,47 @@ export default function WaitingRoom() {
         const data = await resp.json();
         if (!mounted) return;
         setControlData(data);
+
+        // react to changes in the control object
+        // Try to find players or status in common places
+        const getFields = (obj: any) => obj?.data?.content?.fields ?? obj?.data?.content ?? obj?.content?.fields ?? obj?.content ?? obj?.fields ?? null;
+        const fields = getFields(data);
+
+        // heuristics: check for player1/player2 or players array or status/state
+        let otherJoined = false;
+        let stateValue: any = undefined;
+        if (fields) {
+          if (typeof fields.player2 !== "undefined") {
+            // player2 might be address or option
+            const p2 = fields.player2;
+            if (p2 && p2 !== "0x0" && p2 !== null) otherJoined = true;
+          }
+          if (Array.isArray(fields.players) && fields.players.length > 1) {
+            otherJoined = true;
+          }
+          if (typeof fields.state !== "undefined") stateValue = fields.state;
+          if (typeof fields.status !== "undefined") stateValue = fields.status;
+        }
+
+        // If other player joined, update room status to active and notify
+        if (otherJoined) {
+          // update local storage
+          try {
+            const { updateRoom } = await import("@/lib/rooms");
+            updateRoom(network as NetworkName, room.id, { status: "active" });
+            toast({ title: "Opponent joined", description: "The match is ready." });
+            // Optionally navigate to a game view - for now stay on waiting room but you could navigate
+            // navigate(`/tictactoe/wait/${encodeURIComponent(room.id)}`);
+          } catch (err) {
+            console.warn("Failed to update room", err);
+          }
+        }
+
+        // If stateValue suggests game started, redirect to main tic tac toe page to play
+        if (stateValue === "active" || stateValue === "playing" || stateValue === 1) {
+          toast({ title: "Game started", description: "Navigating to the game..." });
+          navigate(`/tictactoe`);
+        }
       } catch (e) {
         console.warn("Failed to fetch control object", e);
       } finally {
