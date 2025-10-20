@@ -94,18 +94,50 @@ export default function TicTacToePage() {
     let mounted = true;
     const loadAvailable = async () => {
       try {
-        // Use Sui Explorer search API as an example to find controls by type
-        const explorerBase = network === "mainnet" ? "https://explorer.sui.io" : "https://explorer.sui.io";
-        const q = encodeURIComponent(`${pkg}::main::Control`);
-        const url = `${explorerBase}/search?query=${q}`; // best-effort; explorer may not return JSON
-        const resp = await fetch(url);
-        if (!resp.ok) {
-          // fallback: empty
-          if (mounted) setAvailableControls([]);
-          return;
+        const explorerBase = "https://explorer.sui.io";
+        const typeStr = `${pkg}::main::Control`;
+        const candidates = [
+          `${explorerBase}/api/objects/by_type?type=${encodeURIComponent(typeStr)}&network=${network}`,
+          `${explorerBase}/api/v1/objects/by_type?type=${encodeURIComponent(typeStr)}&network=${network}`,
+          `${explorerBase}/api/search?query=${encodeURIComponent(typeStr)}&network=${network}`,
+        ];
+        let found: any[] = [];
+        for (const u of candidates) {
+          try {
+            const r = await fetch(u);
+            if (!r.ok) continue;
+            const j = await r.json().catch(() => null);
+            if (!j) continue;
+            // try different shapes
+            if (Array.isArray(j)) found = j;
+            else if (Array.isArray(j.data)) found = j.data;
+            else if (Array.isArray(j.result)) found = j.result;
+            if (found.length > 0) break;
+          } catch (e) {
+            continue;
+          }
         }
-        // explorer search returns HTML; we can't reliably parse. As fallback do nothing.
-        if (mounted) setAvailableControls([]);
+        // Normalize found entries to objects with id and fields when possible
+        const controls: any[] = [];
+        if (found.length > 0) {
+          const url = getFullnodeUrl(network as any).replace(/\/$/, "");
+          for (const item of found) {
+            const id = item?.objectId ?? item?.id ?? item?.object_id ?? item?.digest ?? item?.name;
+            if (!id) continue;
+            try {
+              const oresp = await fetch(`${url}/objects/${id}`);
+              if (!oresp.ok) continue;
+              const ojson = await oresp.json();
+              const type = ojson?.data?.type ?? ojson?.type ?? "";
+              if (!type.includes(`${pkg}::main::Control`)) continue;
+              const fields = ojson?.data?.content?.fields ?? ojson?.data?.content ?? ojson?.content?.fields ?? ojson?.content ?? ojson?.fields ?? null;
+              controls.push({ id, type, fields });
+            } catch (e) {
+              // ignore
+            }
+          }
+        }
+        if (mounted) setAvailableControls(controls);
       } catch (e) {
         if (mounted) setAvailableControls([]);
       }
