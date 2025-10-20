@@ -1,5 +1,4 @@
 import type { RequestHandler } from "express";
-import fetch from "node-fetch";
 import { getFullnodeUrl } from "@mysten/sui/client";
 
 // GET /api/controls/owner/:address?network=testnet
