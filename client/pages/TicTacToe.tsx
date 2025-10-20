@@ -10,7 +10,7 @@ import {
 } from "@mysten/dapp-kit";
 import { Link, useNavigate } from "react-router-dom";
 import { SUI_PACKAGES, PLAYER_REGISTRY } from "@/lib/env";
-import { addRoom, getRooms, NetworkName } from "@/lib/rooms";
+import { addRoom, getRooms, removeRoom, NetworkName } from "@/lib/rooms";
 import { Transaction } from "@mysten/sui/transactions";
 
 function parseSui(value: string) {
@@ -34,7 +34,9 @@ export default function TicTacToePage() {
     network === "mainnet" ? PLAYER_REGISTRY.mainnet : PLAYER_REGISTRY.testnet;
   const [joinName, setJoinName] = useState("");
   const [joinAmount, setJoinAmount] = useState("");
-  const rooms = useMemo(() => getRooms(network as NetworkName), [network]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const rooms = useMemo(() => getRooms(network as NetworkName), [network, refreshKey]);
+  const myRooms = useMemo(() => rooms.filter((r) => r.creator === account?.address), [rooms, account?.address]);
 
   const onCreate = async () => {
     if (!connected) {
@@ -190,6 +192,61 @@ export default function TicTacToePage() {
             </div>
           </div>
         </div>
+        <div className="mt-8 rounded-2xl border border-border bg-card/60 p-6 backdrop-blur">
+          <h2 className="text-lg font-semibold">My rooms</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Rooms you created on this device.
+          </p>
+          <div className="mt-4 grid gap-3">
+            {account?.address ? (
+              myRooms.length === 0 ? (
+                <p className="text-sm text-muted-foreground">You have no rooms yet.</p>
+              ) : (
+                myRooms.map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between rounded-md border border-border/60 bg-background/60 p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-foreground">{r.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        Stake: {(Number(r.stakeMist) / 1e9).toLocaleString(undefined, {
+                          maximumFractionDigits: 4,
+                        })} SUI • ID: <code className="font-mono">{r.id}</code>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          navigate(`/tictactoe/wait/${encodeURIComponent(r.id)}`)
+                        }
+                      >
+                        Open
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          if (!confirm("Delete this room?")) return;
+                          removeRoom(network as NetworkName, r.id);
+                          setRefreshKey((k) => k + 1);
+                          toast({ title: "Room deleted" });
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )
+            ) : (
+              <p className="text-sm text-muted-foreground">Connect your wallet to see your rooms.</p>
+            )}
+          </div>
+        </div>
+
         <div className="mt-10 rounded-2xl border border-border bg-card/60 p-6 backdrop-blur">
           <h2 className="text-lg font-semibold">Available rooms</h2>
           <p className="mt-1 text-sm text-muted-foreground">
