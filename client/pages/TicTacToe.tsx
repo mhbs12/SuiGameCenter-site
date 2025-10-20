@@ -43,6 +43,15 @@ export default function TicTacToePage() {
   const [availableControls, setAvailableControls] = useState<any[]>([]);
   const [loadingControls, setLoadingControls] = useState(false);
 
+  async function safeFetch(input: RequestInfo, init?: RequestInit) {
+    try {
+      return await fetch(input, init as RequestInit);
+    } catch (e) {
+      console.warn("safeFetch failed", input, e);
+      return null;
+    }
+  }
+
   useEffect(() => {
     let mounted = true;
     if (!account?.address) {
@@ -53,23 +62,28 @@ export default function TicTacToePage() {
       setLoadingControls(true);
       try {
         const url = getFullnodeUrl(network as any).replace(/\/$/, "");
-        // call JSON-RPC sui_getObjectsOwnedByAddress
+        // call JSON-RPC sui_getObjectsOwnedByAddress via safeFetch
         const body = { jsonrpc: "2.0", id: 1, method: "sui_getObjectsOwnedByAddress", params: [account.address] };
-        const resp = await fetch(url, {
+        const resp = await safeFetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        const json = await resp.json();
+        if (!resp) {
+          if (mounted) setMyControls([]);
+          return;
+        }
+        const json = await resp.json().catch(() => ({}));
         const refs = json.result ?? [];
         const controls: any[] = [];
         for (const r of refs) {
           const objectId = r?.objectId ?? r?.reference?.objectId ?? r?.object_id ?? r?.object_id;
           if (!objectId) continue;
           try {
-            const oresp = await fetch(`${url}/objects/${objectId}`);
-            if (!oresp.ok) continue;
-            const ojson = await oresp.json();
+            const oresp = await safeFetch(`${url}/objects/${objectId}`);
+            if (!oresp || !oresp.ok) continue;
+            const ojson = await oresp.json().catch(() => null);
+            if (!ojson) continue;
             const type = ojson?.data?.type ?? ojson?.type ?? "";
             if (!type.includes(`${pkg}::main::Control`)) continue;
             const fields = ojson?.data?.content?.fields ?? ojson?.data?.content ?? ojson?.content?.fields ?? ojson?.content ?? ojson?.fields ?? null;
@@ -105,8 +119,8 @@ export default function TicTacToePage() {
         let found: any[] = [];
         for (const u of candidates) {
           try {
-            const r = await fetch(u);
-            if (!r.ok) continue;
+            const r = await safeFetch(u);
+            if (!r || !r.ok) continue;
             const j = await r.json().catch(() => null);
             if (!j) continue;
             // try different shapes
@@ -126,9 +140,10 @@ export default function TicTacToePage() {
             const id = item?.objectId ?? item?.id ?? item?.object_id ?? item?.digest ?? item?.name;
             if (!id) continue;
             try {
-              const oresp = await fetch(`${url}/objects/${id}`);
-              if (!oresp.ok) continue;
-              const ojson = await oresp.json();
+              const oresp = await safeFetch(`${url}/objects/${id}`);
+              if (!oresp || !oresp.ok) continue;
+              const ojson = await oresp.json().catch(() => null);
+              if (!ojson) continue;
               const type = ojson?.data?.type ?? ojson?.type ?? "";
               if (!type.includes(`${pkg}::main::Control`)) continue;
               const fields = ojson?.data?.content?.fields ?? ojson?.data?.content ?? ojson?.content?.fields ?? ojson?.content ?? ojson?.fields ?? null;
