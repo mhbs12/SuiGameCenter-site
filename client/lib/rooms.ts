@@ -10,6 +10,7 @@ export interface RoomInfo {
   createdAt: number;
   txDigest?: string;
   controlId?: string; // on-chain control object id associated with this room
+  gameId?: string; // on-chain Game object id created when second player joins
 }
 
 const key = (network: NetworkName) => `ttt.rooms.${network}`;
