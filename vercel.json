@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install",
+  "outputDirectory": "dist/spa",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
