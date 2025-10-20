@@ -83,7 +83,7 @@ export default function TicTacToePage() {
       const id = res?.digest ?? `${Date.now()}`;
       addRoom(network as NetworkName, {
         id,
-        name: createName.trim(),
+        name: "",
         stakeMist: String(mist),
         creator: account!.address,
         network: network as NetworkName,
