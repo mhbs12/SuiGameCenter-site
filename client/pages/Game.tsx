@@ -17,14 +17,16 @@ export default function GamePage() {
 
   useEffect(() => {
     let mounted = true;
-    if (!room?.controlId) return;
+    // prefer game object if present
+    const targetId = room?.gameId ?? room?.controlId;
+    if (!targetId) return;
     const url = getFullnodeUrl(network as any).replace(/\/$/, "");
     let timer: any = null;
 
     const fetchControl = async () => {
       try {
         setLoading(true);
-        const resp = await fetch(`${url}/objects/${room.controlId}`);
+        const resp = await fetch(`${url}/objects/${targetId}`);
         if (!resp.ok) throw new Error(`Fetch failed ${resp.status}`);
         const data = await resp.json();
         if (!mounted) return;
