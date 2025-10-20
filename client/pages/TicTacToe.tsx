@@ -106,62 +106,12 @@ export default function TicTacToePage() {
   }, [account?.address, network]);
 
   useEffect(() => {
-    let mounted = true;
-    const loadAvailable = async () => {
-      try {
-        const explorerBase = "https://explorer.sui.io";
-        const typeStr = `${pkg}::main::Control`;
-        const candidates = [
-          `${explorerBase}/api/objects/by_type?type=${encodeURIComponent(typeStr)}&network=${network}`,
-          `${explorerBase}/api/v1/objects/by_type?type=${encodeURIComponent(typeStr)}&network=${network}`,
-          `${explorerBase}/api/search?query=${encodeURIComponent(typeStr)}&network=${network}`,
-        ];
-        let found: any[] = [];
-        for (const u of candidates) {
-          try {
-            const r = await safeFetch(u);
-            if (!r || !r.ok) continue;
-            const j = await r.json().catch(() => null);
-            if (!j) continue;
-            // try different shapes
-            if (Array.isArray(j)) found = j;
-            else if (Array.isArray(j.data)) found = j.data;
-            else if (Array.isArray(j.result)) found = j.result;
-            if (found.length > 0) break;
-          } catch (e) {
-            continue;
-          }
-        }
-        // Normalize found entries to objects with id and fields when possible
-        const controls: any[] = [];
-        if (found.length > 0) {
-          const url = getFullnodeUrl(network as any).replace(/\/$/, "");
-          for (const item of found) {
-            const id = item?.objectId ?? item?.id ?? item?.object_id ?? item?.digest ?? item?.name;
-            if (!id) continue;
-            try {
-              const oresp = await safeFetch(`${url}/objects/${id}`);
-              if (!oresp || !oresp.ok) continue;
-              const ojson = await oresp.json().catch(() => null);
-              if (!ojson) continue;
-              const type = ojson?.data?.type ?? ojson?.type ?? "";
-              if (!type.includes(`${pkg}::main::Control`)) continue;
-              const fields = ojson?.data?.content?.fields ?? ojson?.data?.content ?? ojson?.content?.fields ?? ojson?.content ?? ojson?.fields ?? null;
-              controls.push({ id, type, fields });
-            } catch (e) {
-              // ignore
-            }
-          }
-        }
-        if (mounted) setAvailableControls(controls);
-      } catch (e) {
-        if (mounted) setAvailableControls([]);
-      }
-    };
-    loadAvailable();
-    return () => {
-      mounted = false;
-    };
+    // Explorer APIs often block CORS for browser clients. To avoid unhandled
+    // network errors, we disable automatic in-browser queries to the public
+    // Sui Explorer. Available rooms require a server-side indexer or a CORS-
+    // enabled API. For now, show empty results and allow manual rescan if
+    // needed.
+    setAvailableControls([]);
   }, [network]);
 
   const onCreate = async () => {
