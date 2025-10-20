@@ -69,8 +69,8 @@ export default function WaitingRoom() {
 
         // If stateValue suggests game started, redirect to main tic tac toe page to play
         if (stateValue === "active" || stateValue === "playing" || stateValue === 1) {
-          toast({ title: "Game started", description: "Navigating to the game..." });
-          navigate(`/tictactoe`);
+          toast({ title: "Game started", description: "Opening game view..." });
+          navigate(`/tictactoe/game/${encodeURIComponent(room.id)}`);
         }
       } catch (e) {
         console.warn("Failed to fetch control object", e);
