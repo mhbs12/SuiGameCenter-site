@@ -38,6 +38,84 @@ export default function TicTacToePage() {
   const rooms = useMemo(() => getRooms(network as NetworkName), [network, refreshKey]);
   const myRooms = useMemo(() => rooms.filter((r) => r.creator === account?.address), [rooms, account?.address]);
 
+  const [myControls, setMyControls] = useState<any[]>([]);
+  const [availableControls, setAvailableControls] = useState<any[]>([]);
+  const [loadingControls, setLoadingControls] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!account?.address) {
+      setMyControls([]);
+      return;
+    }
+    const load = async () => {
+      setLoadingControls(true);
+      try {
+        const url = getFullnodeUrl(network as any).replace(/\/$/, "");
+        // call JSON-RPC sui_getObjectsOwnedByAddress
+        const body = { jsonrpc: "2.0", id: 1, method: "sui_getObjectsOwnedByAddress", params: [account.address] };
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const json = await resp.json();
+        const refs = json.result ?? [];
+        const controls: any[] = [];
+        for (const r of refs) {
+          const objectId = r?.objectId ?? r?.reference?.objectId ?? r?.object_id ?? r?.object_id;
+          if (!objectId) continue;
+          try {
+            const oresp = await fetch(`${url}/objects/${objectId}`);
+            if (!oresp.ok) continue;
+            const ojson = await oresp.json();
+            const type = ojson?.data?.type ?? ojson?.type ?? "";
+            if (!type.includes(`${pkg}::main::Control`)) continue;
+            const fields = ojson?.data?.content?.fields ?? ojson?.data?.content ?? ojson?.content?.fields ?? ojson?.content ?? ojson?.fields ?? null;
+            controls.push({ id: objectId, type, fields });
+          } catch (e) {
+            // ignore per-object errors
+          }
+        }
+        if (mounted) setMyControls(controls);
+      } catch (e) {
+        console.warn("Failed to load my controls", e);
+      } finally {
+        if (mounted) setLoadingControls(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [account?.address, network]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadAvailable = async () => {
+      try {
+        // Use Sui Explorer search API as an example to find controls by type
+        const explorerBase = network === "mainnet" ? "https://explorer.sui.io" : "https://explorer.sui.io";
+        const q = encodeURIComponent(`${pkg}::main::Control`);
+        const url = `${explorerBase}/search?query=${q}`; // best-effort; explorer may not return JSON
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          // fallback: empty
+          if (mounted) setAvailableControls([]);
+          return;
+        }
+        // explorer search returns HTML; we can't reliably parse. As fallback do nothing.
+        if (mounted) setAvailableControls([]);
+      } catch (e) {
+        if (mounted) setAvailableControls([]);
+      }
+    };
+    loadAvailable();
+    return () => {
+      mounted = false;
+    };
+  }, [network]);
+
   const onCreate = async () => {
     if (!connected) {
       toast({ title: "Connect your wallet first" });
