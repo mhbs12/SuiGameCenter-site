@@ -9,6 +9,7 @@ export interface RoomInfo {
   status: "waiting" | "active" | "closed";
   createdAt: number;
   txDigest?: string;
+  controlId?: string; // on-chain control object id associated with this room
 }
 
 const key = (network: NetworkName) => `ttt.rooms.${network}`;
