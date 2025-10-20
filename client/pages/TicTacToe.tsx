@@ -374,41 +374,34 @@ export default function TicTacToePage() {
             Recently created rooms on this device for {network}.
           </p>
           <div className="mt-4 grid gap-3">
-            {rooms.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No rooms yet. Create one to get started.
-              </p>
+            <p className="text-sm text-muted-foreground">
+              Available rooms are discovered via an indexer (Sui Explorer). The public
+              Explorer blocks browser clients via CORS, so this view is disabled in the browser.
+            </p>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="ghost" onClick={() => {
+                toast({ title: "Manual rescan", description: "Explorer queries are best-effort and may fail due to CORS." });
+              }}>
+                Rescan (best-effort)
+              </Button>
+            </div>
+            {availableControls.length > 0 ? (
+              availableControls.map((c) => (
+                <div key={c.id} className="flex items-center justify-between rounded-md border border-border/60 bg-background/60 p-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-foreground">Control • <code className="font-mono">{c.id}</code></p>
+                    <p className="truncate text-xs text-muted-foreground">Sender1: <span className="font-mono">{String(c.fields?.sender1)}</span></p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => navigate(`/tictactoe/wait/${encodeURIComponent(c.id)}`)}>
+                      Open
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No available rooms found.</p>
             )}
-            {rooms.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between rounded-md border border-border/60 bg-background/60 p-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-foreground">
-                    {r.name}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    Stake:{" "}
-                    {(Number(r.stakeMist) / 1e9).toLocaleString(undefined, {
-                      maximumFractionDigits: 4,
-                    })}{" "}
-                    SUI • ID: <code className="font-mono">{r.id}</code>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() =>
-                      navigate(`/tictactoe/wait/${encodeURIComponent(r.id)}`)
-                    }
-                  >
-                    Open
-                  </Button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
