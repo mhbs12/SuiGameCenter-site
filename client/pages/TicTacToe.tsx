@@ -297,48 +297,73 @@ export default function TicTacToePage() {
           </p>
           <div className="mt-4 grid gap-3">
             {account?.address ? (
-              myRooms.length === 0 ? (
-                <p className="text-sm text-muted-foreground">You have no rooms yet.</p>
-              ) : (
-                myRooms.map((r) => (
-                  <div
-                    key={r.id}
-                    className="flex items-center justify-between rounded-md border border-border/60 bg-background/60 p-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-foreground">{r.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        Stake: {(Number(r.stakeMist) / 1e9).toLocaleString(undefined, {
-                          maximumFractionDigits: 4,
-                        })} SUI • ID: <code className="font-mono">{r.id}</code>
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          navigate(`/tictactoe/wait/${encodeURIComponent(r.id)}`)
-                        }
-                      >
-                        Open
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          if (!confirm("Delete this room?")) return;
-                          removeRoom(network as NetworkName, r.id);
-                          setRefreshKey((k) => k + 1);
-                          toast({ title: "Room deleted" });
-                        }}
-                      >
-                        Delete
-                      </Button>
+              <>
+                {myControls.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium">On-chain Controls</h3>
+                    <div className="mt-2 space-y-2">
+                      {myControls.map((c) => (
+                        <div key={c.id} className="flex items-center justify-between rounded-md border border-border/60 bg-background/60 p-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">Control • <code className="font-mono">{c.id}</code></p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              Sender1: <span className="font-mono">{String(c.fields?.sender1 ?? c.fields?.sender)}</span> • Amount1: <span className="font-mono">{String(c.fields?.amount1 ?? c.fields?.amount)}</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => navigate(`/tictactoe/wait/${encodeURIComponent(c.id)}`)}>
+                              Open
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))
-              )
+                )}
+
+                {myRooms.length === 0 && myControls.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">You have no rooms yet.</p>
+                ) : (
+                  myRooms.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center justify-between rounded-md border border-border/60 bg-background/60 p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-foreground">{r.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          Stake: {(Number(r.stakeMist) / 1e9).toLocaleString(undefined, {
+                            maximumFractionDigits: 4,
+                          })} SUI • ID: <code className="font-mono">{r.id}</code>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            navigate(`/tictactoe/wait/${encodeURIComponent(r.id)}`)
+                          }
+                        >
+                          Open
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            if (!confirm("Delete this room?")) return;
+                            removeRoom(network as NetworkName, r.id);
+                            setRefreshKey((k) => k + 1);
+                            toast({ title: "Room deleted" });
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">Connect your wallet to see your rooms.</p>
             )}
