@@ -3,6 +3,9 @@ import { getRoomById, removeRoom, NetworkName } from "@/lib/rooms";
 import { Button } from "@/components/ui/button";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
+import { JsonRpcProvider } from "@mysten/sui.js";
+import { getFullnodeUrl } from "@mysten/sui/client";
 
 export default function WaitingRoom() {
   const { id } = useParams<{ id: string }>();
@@ -10,6 +13,41 @@ export default function WaitingRoom() {
   const account = useCurrentAccount();
   const navigate = useNavigate();
   const room = id ? getRoomById(network as NetworkName, id) : undefined;
+
+  const [controlData, setControlData] = useState<any>(null);
+  const [loadingControl, setLoadingControl] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!room?.controlId) return;
+    const url = getFullnodeUrl(network as any);
+    const provider = new JsonRpcProvider({ url });
+    let timer: any = null;
+
+    const fetchControl = async () => {
+      try {
+        setLoadingControl(true);
+        const res = await provider.getObject({ id: room.controlId });
+        if (!mounted) return;
+        setControlData(res);
+      } catch (e) {
+        // ignore transient errors
+        console.warn("Failed to fetch control object", e);
+      } finally {
+        if (mounted) setLoadingControl(false);
+      }
+    };
+
+    // initial fetch
+    fetchControl();
+    // poll every 3s
+    timer = setInterval(fetchControl, 3000);
+
+    return () => {
+      mounted = false;
+      if (timer) clearInterval(timer);
+    };
+  }, [room?.controlId, network]);
 
   const handleDelete = () => {
     if (!id || !room) return;
@@ -50,6 +88,22 @@ export default function WaitingRoom() {
           ) : (
             <p className="mt-2 text-sm text-muted-foreground">Room: {id}</p>
           )}
+
+          {room?.controlId && (
+            <div className="mt-4 text-left">
+              <p className="text-xs text-muted-foreground">Control object: <code className="font-mono">{room.controlId}</code></p>
+              <div className="mt-2 rounded-md border border-border p-3 bg-background/40">
+                {loadingControl && <p className="text-sm text-muted-foreground">Loading control object...</p>}
+                {!loadingControl && controlData && (
+                  <pre className="text-xs max-h-60 overflow-auto">{JSON.stringify(controlData, null, 2)}</pre>
+                )}
+                {!loadingControl && !controlData && (
+                  <p className="text-sm text-muted-foreground">No control data yet.</p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 flex items-center justify-center gap-3">
             <Button asChild variant="secondary">
               <a
