@@ -54,8 +54,13 @@ export default function GamePage() {
   }
 
   const fields = extractFields(controlData);
-  const players = fields?.players ?? (fields && fields.player1 ? [fields.player1, fields.player2] : undefined);
-  const board = fields?.board ?? fields?.cells ?? null;
+  // For Game struct: x (address), o (address), board: vector<u8>, turn: u8
+  const players = fields ? [fields.x ?? fields.player1 ?? (fields.players && fields.players[0]), fields.o ?? fields.player2 ?? (fields.players && fields.players[1])] : undefined;
+  let board = null;
+  if (fields) {
+    if (Array.isArray(fields.board)) board = fields.board.map((v: any) => (typeof v === "object" && v !== null && v.value !== undefined ? v.value : v));
+    else if (Array.isArray(fields.cells)) board = fields.cells;
+  }
   const turn = fields?.turn ?? fields?.current_turn ?? null;
 
   // Render a 3x3 board if array-like
