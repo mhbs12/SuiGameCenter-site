@@ -69,6 +69,25 @@ export default function TicTacToePage() {
         arguments: [stakeCoin, tx.pure.u64(mist), tx.object(playerRegistry)],
       });
       const res = await signAndExecute({ transaction: tx });
+
+      // attempt to extract a created control object id from the response
+      function findObjectId(obj: any): string | undefined {
+        if (!obj || typeof obj !== "object") return undefined;
+        if (typeof obj.objectId === "string") return obj.objectId;
+        // common nested shapes: reference: { objectId }
+        if (obj.reference && typeof obj.reference === "object" && typeof obj.reference.objectId === "string") return obj.reference.objectId;
+        for (const k of Object.keys(obj)) {
+          const v = (obj as any)[k];
+          if (typeof v === "string" && /^0x[0-9a-fA-F]{20,}$/i.test(v)) return v; // heuristic for sui object ids
+          if (typeof v === "object") {
+            const found = findObjectId(v);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      }
+
+      const controlId = findObjectId(res) ?? undefined;
       const id = res?.digest ?? `${Date.now()}`;
       addRoom(network as NetworkName, {
         id,
@@ -79,6 +98,7 @@ export default function TicTacToePage() {
         status: "waiting",
         createdAt: Date.now(),
         txDigest: res?.digest,
+        controlId,
       });
       navigate(`/tictactoe/wait/${encodeURIComponent(id)}`);
     } catch (e: any) {
