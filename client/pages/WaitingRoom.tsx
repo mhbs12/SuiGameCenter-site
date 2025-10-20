@@ -1,4 +1,3 @@
-import { useParams, Link } from "react-router-dom";
 import { useSuiClientContext, useCurrentAccount } from "@mysten/dapp-kit";
 import { getRoomById, removeRoom, NetworkName } from "@/lib/rooms";
 import { Button } from "@/components/ui/button";
