@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import TicTacToe from "./pages/TicTacToe";
 import WaitingRoom from "./pages/WaitingRoom";
+import Game from "./pages/Game";
 import Layout from "@/components/layout/Layout";
 import {
   SuiClientProvider,
@@ -63,6 +64,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/tictactoe" element={<TicTacToe />} />
                 <Route path="/tictactoe/wait/:id" element={<WaitingRoom />} />
+                <Route path="/tictactoe/game/:id" element={<Game />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>

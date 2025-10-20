@@ -9,6 +9,8 @@ export interface RoomInfo {
   status: "waiting" | "active" | "closed";
   createdAt: number;
   txDigest?: string;
+  controlId?: string; // on-chain control object id associated with this room
+  gameId?: string; // on-chain Game object id created when second player joins
 }
 
 const key = (network: NetworkName) => `ttt.rooms.${network}`;
@@ -39,4 +41,15 @@ export function getRoomById(
   id: string,
 ): RoomInfo | undefined {
   return getRooms(network).find((r) => r.id === id);
+}
+
+export function removeRoom(network: NetworkName, id: string) {
+  const rooms = getRooms(network).filter((r) => r.id !== id);
+  saveRooms(network, rooms);
+}
+
+export function updateRoom(network: NetworkName, id: string, patch: Partial<RoomInfo>) {
+  const rooms = getRooms(network).map((r) => (r.id === id ? { ...r, ...patch } : r));
+  saveRooms(network, rooms);
+  return rooms.find((r) => r.id === id);
 }
