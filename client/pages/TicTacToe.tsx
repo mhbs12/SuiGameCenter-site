@@ -24,9 +24,8 @@ export default function TicTacToePage() {
   const connected = Boolean(account?.address);
   const navigate = useNavigate();
 
-  const [createName, setCreateName] = useState("");
   const [createAmount, setCreateAmount] = useState("");
-  const [joinName, setJoinName] = useState("");
+  const [controlId, setControlId] = useState("");
   const [joinAmount, setJoinAmount] = useState("");
 
   const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
