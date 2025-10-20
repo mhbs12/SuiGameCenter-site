@@ -53,21 +53,54 @@ export default function WaitingRoom() {
           if (typeof fields.status !== "undefined") stateValue = fields.status;
         }
 
-        // If other player joined, update room status to active and notify
+        // If other player joined, try to find the created Game object and update local storage
         if (otherJoined) {
-          // update local storage
           try {
+            // scan control data for candidate object ids
+            function collectIds(obj: any, out: Set<string>) {
+              if (!obj || typeof obj !== "object") return;
+              for (const k of Object.keys(obj)) {
+                const v = obj[k];
+                if (typeof v === "string" && /^0x[0-9a-fA-F]{2,}$/.test(v)) out.add(v);
+                else if (typeof v === "object") collectIds(v, out);
+              }
+            }
+            const ids = new Set<string>();
+            collectIds(data, ids);
+
+            let foundGameId: string | undefined = undefined;
+            for (const candidate of ids) {
+              try {
+                const resp = await fetch(`${url}/objects/${candidate}`);
+                if (!resp.ok) continue;
+                const obj = await resp.json();
+                const f = obj?.data?.content?.fields ?? obj?.data?.content ?? obj?.content?.fields ?? obj?.content ?? obj?.fields ?? null;
+                if (!f) continue;
+                // check for Game struct: board (vector), turn (number), x and o addresses
+                const hasBoard = Array.isArray(f.board) || Array.isArray(f.cells);
+                const hasTurn = typeof f.turn !== "undefined" || typeof f.current_turn !== "undefined";
+                const hasPlayers = typeof f.x !== "undefined" || typeof f.o !== "undefined" || (Array.isArray(f.players) && f.players.length >= 2);
+                if (hasBoard && hasTurn && hasPlayers) {
+                  foundGameId = candidate;
+                  break;
+                }
+              } catch (e) {
+                // ignore
+              }
+            }
+
             const { updateRoom } = await import("@/lib/rooms");
-            updateRoom(network as NetworkName, room.id, { status: "active" });
+            updateRoom(network as NetworkName, room.id, { status: "active", ...(foundGameId ? { gameId: foundGameId } : {}) });
             toast({ title: "Opponent joined", description: "The match is ready." });
-            // Optionally navigate to a game view - for now stay on waiting room but you could navigate
-            // navigate(`/tictactoe/wait/${encodeURIComponent(room.id)}`);
+            if (foundGameId) {
+              navigate(`/tictactoe/game/${encodeURIComponent(room.id)}`);
+            }
           } catch (err) {
             console.warn("Failed to update room", err);
           }
         }
 
-        // If stateValue suggests game started, redirect to main tic tac toe page to play
+        // If stateValue suggests game started, redirect to game view
         if (stateValue === "active" || stateValue === "playing" || stateValue === 1) {
           toast({ title: "Game started", description: "Opening game view..." });
           navigate(`/tictactoe/game/${encodeURIComponent(room.id)}`);
