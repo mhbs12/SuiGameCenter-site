@@ -154,8 +154,8 @@ export default function TicTacToePage() {
             <p className="mt-1 text-sm text-muted-foreground">Enter the room name and your matching stake.</p>
             <div className="mt-4 space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="room-name">Room name</Label>
-                <Input id="room-name" placeholder="e.g. pro-match-1" value={joinName} onChange={(e) => setJoinName(e.target.value)} />
+                <Label htmlFor="control-id">Control ID</Label>
+                <Input id="control-id" placeholder="0x..." value={controlId} onChange={(e) => setControlId(e.target.value)} />
               </div>
 
               <div className="space-y-2">
