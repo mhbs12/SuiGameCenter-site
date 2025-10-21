@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import {
   useSuiClientContext,
   useSignAndExecuteTransaction,
 } from "@mysten/dapp-kit";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { SUI_PACKAGES, PLAYER_REGISTRY } from "@/lib/env";
 import { addRoom, NetworkName, getRooms } from "@/lib/rooms";
 import { Transaction } from "@mysten/sui/transactions";
@@ -27,6 +27,17 @@ export default function TicTacToePage() {
   const [createAmount, setCreateAmount] = useState("");
   const [controlId, setControlId] = useState("");
   const [joinAmount, setJoinAmount] = useState("");
+
+  const location = useLocation();
+  useEffect(() => {
+    try {
+      const p = new URLSearchParams(location.search);
+      const c = p.get("control");
+      if (c) setControlId(c);
+    } catch (e) {
+      // ignore invalid URLs
+    }
+  }, [location.search]);
 
   const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
   const { network } = useSuiClientContext();
