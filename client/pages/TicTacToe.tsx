@@ -156,6 +156,11 @@ export default function TicTacToePage() {
                         if (found) {
                           controlId = found;
                           updateRoom(network as NetworkName, id, { controlId });
+                          try {
+                            navigate(`/tictactoe/wait/${encodeURIComponent(found)}`, { replace: true });
+                          } catch (err) {
+                            // ignore navigation errors
+                          }
                           return;
                         }
                       }
@@ -171,6 +176,11 @@ export default function TicTacToePage() {
                         if (found) {
                           controlId = found;
                           updateRoom(network as NetworkName, id, { controlId });
+                          try {
+                            navigate(`/tictactoe/wait/${encodeURIComponent(found)}`, { replace: true });
+                          } catch (err) {
+                            // ignore navigation errors
+                          }
                           return;
                         }
                       }
