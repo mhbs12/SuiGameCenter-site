@@ -130,7 +130,8 @@ export default function TicTacToePage() {
         txDigest: (res as any)?.digest,
         controlId,
       });
-      navigate(`/tictactoe/wait/${encodeURIComponent(id)}`);
+      const initialPath = controlId ?? id;
+      navigate(`/tictactoe/wait/${encodeURIComponent(initialPath)}`);
 
       // If we didn't find controlId yet, poll the fullnode transaction endpoint
       // to wait until the SDK/fullnode confirms the transaction and reports effects
