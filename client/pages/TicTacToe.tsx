@@ -10,7 +10,7 @@ import {
 } from "@mysten/dapp-kit";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { SUI_PACKAGES, PLAYER_REGISTRY } from "@/lib/env";
-import { addRoom, NetworkName, getRooms } from "@/lib/rooms";
+import { addRoom, NetworkName, getRooms, updateRoom } from "@/lib/rooms";
 import { Transaction } from "@mysten/sui/transactions";
 
 function parseSui(value: string) {
@@ -130,6 +130,61 @@ export default function TicTacToePage() {
         controlId,
       });
       navigate(`/tictactoe/wait/${encodeURIComponent(id)}`);
+
+      // If we didn't find controlId yet, poll the fullnode transaction endpoint
+      // to wait until the SDK/fullnode confirms the transaction and reports effects
+      if (!controlId && (res as any)?.digest) {
+        (async () => {
+          try {
+            const url = getFullnodeUrl(network as any).replace(/\/$/, "");
+            const digest = (res as any).digest;
+            const maxTries = 12;
+            for (let i = 0; i < maxTries; i++) {
+              try {
+                const txResp = await fetch(`${url}/transactions/${encodeURIComponent(digest)}`);
+                if (txResp.ok) {
+                  const txData = await txResp.json();
+                  // look in effects.created or objectChanges
+                  const created = Array.isArray(txData?.effects?.created) ? txData.effects.created : Array.isArray(txData?.effects?.created) ? txData.effects.created : [];
+                  if (Array.isArray(created) && created.length > 0) {
+                    for (const c of created) {
+                      const typeStr = (c as any)?.type || (c as any)?.reference?.type || "";
+                      if (typeof typeStr === "string" && typeStr.includes("::ttt::Control")) {
+                        const found = (c as any)?.reference?.objectId || (c as any)?.objectId;
+                        if (found) {
+                          controlId = found;
+                          updateRoom(network as NetworkName, id, { controlId });
+                          return;
+                        }
+                      }
+                    }
+                  }
+
+                  if (Array.isArray(txData?.objectChanges)) {
+                    for (const ch of txData.objectChanges) {
+                      const kind = (ch as any)?.type || (ch as any)?.kind;
+                      const objType = (ch as any)?.objectType || (ch as any)?.type;
+                      if ((kind === "created" || kind === "Created") && typeof objType === "string" && objType.includes("::ttt::Control")) {
+                        const found = (ch as any)?.objectId;
+                        if (found) {
+                          controlId = found;
+                          updateRoom(network as NetworkName, id, { controlId });
+                          return;
+                        }
+                      }
+                    }
+                  }
+                }
+              } catch (err) {
+                // ignore and retry
+              }
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+          } catch (err) {
+            // ignore polling errors
+          }
+        })();
+      }
     } catch (e: any) {
       toast({ title: "Create failed", description: String(e?.message ?? e) });
     }
