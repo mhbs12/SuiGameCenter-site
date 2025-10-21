@@ -12,6 +12,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { SUI_PACKAGES, PLAYER_REGISTRY } from "@/lib/env";
 import { addRoom, NetworkName, getRooms, updateRoom } from "@/lib/rooms";
 import { Transaction } from "@mysten/sui/transactions";
+import { getFullnodeUrl } from "@mysten/sui/client";
 
 function parseSui(value: string) {
   const n = Number(value);
