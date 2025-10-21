@@ -119,6 +119,7 @@ export default function TicTacToePage() {
       if (!controlId) controlId = findObjectId(res) ?? undefined;
 
       const id = (res as any)?.digest ?? `${Date.now()}`;
+      // store room immediately (so it's visible in lists), but do NOT navigate until controlId is confirmed
       addRoom(network as NetworkName, {
         id,
         name: "",
@@ -130,24 +131,28 @@ export default function TicTacToePage() {
         txDigest: (res as any)?.digest,
         controlId,
       });
-      const initialPath = controlId ?? id;
-      navigate(`/tictactoe/wait/${encodeURIComponent(initialPath)}`);
 
-      // If we didn't find controlId yet, poll the fullnode transaction endpoint
-      // to wait until the SDK/fullnode confirms the transaction and reports effects
-      if (!controlId && (res as any)?.digest) {
+      // If controlId was found in immediate response, navigate now to the waiting screen for that control
+      if (controlId) {
+        navigate(`/tictactoe/wait/${encodeURIComponent(controlId)}`);
+        return;
+      }
+
+      // otherwise wait for transaction confirmation/fullnode reporting, then navigate once the Control object id is discovered
+      toast({ title: "Waiting for transaction confirmation..." });
+      if ((res as any)?.digest) {
         (async () => {
           try {
             const url = getFullnodeUrl(network as any).replace(/\/$/, "");
             const digest = (res as any).digest;
-            const maxTries = 12;
+            const maxTries = 20; // wait longer (20s)
             for (let i = 0; i < maxTries; i++) {
               try {
                 const txResp = await fetch(`${url}/transactions/${encodeURIComponent(digest)}`);
                 if (txResp.ok) {
                   const txData = await txResp.json();
                   // look in effects.created or objectChanges
-                  const created = Array.isArray(txData?.effects?.created) ? txData.effects.created : Array.isArray(txData?.effects?.created) ? txData.effects.created : [];
+                  const created = Array.isArray(txData?.effects?.created) ? txData.effects.created : [];
                   if (Array.isArray(created) && created.length > 0) {
                     for (const c of created) {
                       const typeStr = (c as any)?.type || (c as any)?.reference?.type || "";
@@ -192,6 +197,8 @@ export default function TicTacToePage() {
               }
               await new Promise((r) => setTimeout(r, 1000));
             }
+            // if not found after timeout, inform user
+            toast({ title: "Control not found yet", description: "The transaction is pending; try again shortly." });
           } catch (err) {
             // ignore polling errors
           }
