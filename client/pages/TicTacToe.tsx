@@ -10,7 +10,7 @@ import {
 } from "@mysten/dapp-kit";
 import { Link, useNavigate } from "react-router-dom";
 import { SUI_PACKAGES, PLAYER_REGISTRY } from "@/lib/env";
-import { addRoom, NetworkName } from "@/lib/rooms";
+import { addRoom, NetworkName, getRooms } from "@/lib/rooms";
 import { Transaction } from "@mysten/sui/transactions";
 
 function parseSui(value: string) {
@@ -65,9 +65,13 @@ export default function TicTacToePage() {
 
       function findObjectId(obj: any): string | undefined {
         if (!obj || typeof obj !== "object") return undefined;
-        if (typeof obj.objectId === "string") return obj.objectId;
-        if (obj.reference && typeof obj.reference === "object" && typeof obj.reference.objectId === "string")
-          return obj.reference.objectId;
+        if (typeof (obj as any).objectId === "string") return (obj as any).objectId;
+        if (
+          (obj as any).reference &&
+          typeof (obj as any).reference === "object" &&
+          typeof (obj as any).reference.objectId === "string"
+        )
+          return (obj as any).reference.objectId;
         for (const k of Object.keys(obj)) {
           const v = (obj as any)[k];
           if (typeof v === "string" && /^0x[0-9a-fA-F]{20,}$/i.test(v)) return v;
@@ -79,8 +83,30 @@ export default function TicTacToePage() {
         return undefined;
       }
 
-      const controlId = findObjectId(res) ?? undefined;
-      const id = res?.digest ?? `${Date.now()}`;
+      let controlId: string | undefined = undefined;
+      const createdFromEffects = Array.isArray((res as any)?.effects?.created)
+        ? (res as any).effects.created
+        : [];
+      for (const c of createdFromEffects) {
+        const typeStr = (c as any)?.type || (c as any)?.reference?.type || "";
+        if (typeof typeStr === "string" && typeStr.includes("::ttt::Control")) {
+          controlId = (c as any)?.reference?.objectId || (c as any)?.objectId;
+          break;
+        }
+      }
+      if (!controlId && Array.isArray((res as any)?.objectChanges)) {
+        for (const ch of (res as any).objectChanges) {
+          const kind = (ch as any)?.type || (ch as any)?.kind;
+          const objType = (ch as any)?.objectType || (ch as any)?.type;
+          if ((kind === "created" || kind === "Created") && typeof objType === "string" && objType.includes("::ttt::Control")) {
+            controlId = (ch as any)?.objectId;
+            break;
+          }
+        }
+      }
+      if (!controlId) controlId = findObjectId(res) ?? undefined;
+
+      const id = (res as any)?.digest ?? `${Date.now()}`;
       addRoom(network as NetworkName, {
         id,
         name: "",
@@ -89,7 +115,7 @@ export default function TicTacToePage() {
         network: network as NetworkName,
         status: "waiting",
         createdAt: Date.now(),
-        txDigest: res?.digest,
+        txDigest: (res as any)?.digest,
         controlId,
       });
       navigate(`/tictactoe/wait/${encodeURIComponent(id)}`);
@@ -98,20 +124,47 @@ export default function TicTacToePage() {
     }
   };
 
-  const onJoin = () => {
+  const onJoin = async () => {
     if (!connected) {
       toast({ title: "Connect your wallet first" });
       return;
     }
     const amt = parseSui(joinAmount);
-    if (amt == null || !controlId.trim()) {
+    const ctrl = controlId.trim();
+    if (amt == null || !ctrl) {
       toast({ title: "Enter a Control ID and SUI amount" });
       return;
     }
-    toast({
-      title: "Joining control",
-      description: `Control: ${controlId} • Stake: ${amt} SUI`,
-    });
+    if (!pkg || !playerRegistry) {
+      toast({ title: "Missing env", description: "Set package and PLAYER_REGISTRY IDs for current network." });
+      return;
+    }
+
+    try {
+      // Enforce minimum stake if we have it locally
+      const rooms = getRooms(network as NetworkName);
+      const match = rooms.find((r) => r.controlId === ctrl);
+      if (match) {
+        const minSui = Number(match.stakeMist) / 1e9;
+        if (!(amt >= minSui)) {
+          toast({ title: "Stake too low", description: `Minimum required is ${minSui.toLocaleString(undefined, { maximumFractionDigits: 4 })} SUI` });
+          return;
+        }
+      }
+
+      const mist = BigInt(Math.floor(amt * 1e9));
+      const tx = new Transaction();
+      const [stakeCoin] = tx.splitCoins(tx.gas, [tx.pure.u64(mist)]);
+      tx.moveCall({
+        target: `${pkg}::ttt::join_bttt`,
+        arguments: [stakeCoin, tx.pure.u64(mist), tx.object(ctrl), tx.object(playerRegistry), tx.object("0x6")],
+      });
+      const res = await signAndExecute({ transaction: tx });
+
+      toast({ title: "Join submitted", description: `Tx: ${(res as any)?.digest ?? "submitted"}` });
+    } catch (e: any) {
+      toast({ title: "Join failed", description: String(e?.message ?? e) });
+    }
   };
 
   return (
