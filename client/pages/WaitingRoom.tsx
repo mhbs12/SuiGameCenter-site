@@ -186,7 +186,7 @@ export default function WaitingRoom() {
                   // prefer sharing a link that includes the Control object id so others can join directly
                   const control = room?.controlId;
                   const origin = typeof window !== "undefined" ? window.location.origin : "";
-                  const url = control && origin ? `${origin}/tictactoe?control=${encodeURIComponent(control)}` : (typeof window !== "undefined" ? window.location.href : "");
+                  const url = control && origin ? `${origin}/tictactoe/wait/${encodeURIComponent(control)}` : (typeof window !== "undefined" ? window.location.href : "");
                   if (!url) return;
                   await navigator.clipboard.writeText(url);
                   toast({ title: "Link copied" });
