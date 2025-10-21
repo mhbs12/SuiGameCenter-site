@@ -179,15 +179,35 @@ export default function WaitingRoom() {
           )}
 
           <div className="mt-6 flex items-center justify-center gap-3">
-            <Button asChild variant="secondary">
-              <a
-                href={typeof window !== "undefined" ? window.location.href : "#"}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Share link
-              </a>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  const url = typeof window !== "undefined" ? window.location.href : "";
+                  if (!url) return;
+                  await navigator.clipboard.writeText(url);
+                  toast({ title: "Link copied" });
+                } catch (e: any) {
+                  toast({ title: "Unable to copy link", description: String(e?.message ?? e) });
+                }
+              }}
+            >
+              Share link
             </Button>
+            {room?.controlId ? (
+              <Button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(room.controlId);
+                    toast({ title: "Control ID copied" });
+                  } catch (e: any) {
+                    toast({ title: "Unable to copy Control ID", description: String(e?.message ?? e) });
+                  }
+                }}
+              >
+                Copy Control ID
+              </Button>
+            ) : null}
             <Link to="/tictactoe" className="text-sm text-foreground/70 hover:text-primary">
               Back
             </Link>
